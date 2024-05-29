@@ -67,9 +67,12 @@
                                            (:div :class "container"
                                                  (:h1 (str "Templates"))
                                                  (:select :size 5 :style "width: 100%;"
-                                                   (dolist (template (load-templates))
-                                                     (htm (:option (str (template-filename template))))))
-                                                 (render-template-form nil stream))))
+                                                   (dolist (tmpl (load-templates))
+                                                     (htm (:option :value (template-filename tmpl)
+                                                                   :selected (and template (string= (template-filename tmpl) (template-filename template)))
+                                                                   (str (template-filename tmpl))
+                                                                   ))))
+                                                 (render-template-form template stream))))
                            (:div :class "cell is-col-span-3"
                                  (:section :class "section"
                                            (:div :class "container"
@@ -97,25 +100,24 @@
   (render-main-page nil (find-template template)))
 
 (defun render-template-form (template out)
-  (if (null template)
-      (with-html-output (out)
-        (:div :class "field is-small"
-              (:label :class "is-small" (str "Filename"))
-              (:div :class "control"
-                    (:input :name "filename" :class "input is-small" :type "text" :placeholder "The template filename")))
-        (:div :class "field is-small"
-              (:label :class "is-small" (str "Data url"))
-              (:div :class "control"
-                    (:input :name "data-url" :class "input is-small" :type "text" :placeholder "The template data url")))
-        (:div :class "field is-small"
-              (:label :class "is-small" (str "Arguments"))
-              (:div :class "control"
-                    (:input :name "arguments" :class "input is-small" :type "text" :placeholder "The template arguments")))
+  (with-html-output (out)
+    (:div :class "field is-small"
+          (:label :class "is-small" (str "Filename"))
+          (:div :class "control"
+                (:input :name "filename" :class "input is-small" :type "text" :placeholder "The template filename" :value (when template (template-filename template)))))
+    (:div :class "field is-small"
+          (:label :class "is-small" (str "Data url"))
+          (:div :class "control"
+                (:input :name "data-url" :class "input is-small" :type "text" :placeholder "The template data url" :value (when template (template-data-url template)))))
+    (:div :class "field is-small"
+          (:label :class "is-small" (str "Arguments"))
+          (:div :class "control"
+                (:input :name "arguments" :class "input is-small" :type "text" :placeholder "The template arguments" :value (when template (template-arguments template)))))
 
-        (:div :class "control"
-              (:button :class "button is-primary"
-                       :type "submit"
-                       (str "Save"))))))
+    (:div :class "control"
+          (:button :class "button is-primary"
+                   :type "submit"
+                   (str "Save")))))
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
@@ -126,7 +128,7 @@
                                 :if-exists :supersede)
       (write-string (hunchentoot:post-parameter "source") f))
     ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-    (render-main-page nil)))
+    (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename")))))                                                       
 
 (defvar *acceptor*)
 
