@@ -29,9 +29,22 @@
               :initform nil
               :accessor template-arguments)))
 
+(defun load-templates ()
+  (mapcar (lambda (filepath)
+            (make-instance 'template
+                           :filename (file-namestring filepath)))
+          (uiop/filesystem:directory-files *templates-directory*)))
+
+(defun template-source (template)
+  (alexandria:read-file-into-string (merge-pathnames (template-filename template) *templates-directory*)))
+
+(defun find-template (filename)
+  (find-if (lambda (template) (string= (template-filename template) filename))
+           (load-templates)))
+
 (defparameter +template-designer.js+ (merge-pathnames "template-designer.js" *load-pathname*))
 
-(defun render-main-page (destination)
+(defun render-main-page (destination &optional template)
   (uiop:with-output (stream destination)
     (write-string "<!doctype html>" stream)
     (with-html-output (stream)
@@ -54,9 +67,8 @@
                                            (:div :class "container"
                                                  (:h1 (str "Templates"))
                                                  (:select :size 5 :style "width: 100%;"
-                                                   (:option (str "main.html"))
-                                                   (:option (str "body.html"))
-                                                   (:option (str "test.html")))
+                                                   (dolist (template (load-templates))
+                                                     (htm (:option (str (template-filename template))))))
                                                  (render-template-form nil stream))))
                            (:div :class "cell is-col-span-3"
                                  (:section :class "section"
@@ -69,7 +81,7 @@
                                                             :rows 50
                                                             :width "100%"
                                                             :height "105px"
-                                                            (str "<html></html>"))))))
+                                                            (str (or (and template (template-source template)) "<html></html>")))))))
                      (:div :class "cell is-col-span-4"
                            (:section :class "section"
                                      (:div :class "container"
@@ -81,8 +93,8 @@
         )))))
 
 (hunchentoot:define-easy-handler (main :uri "/")
-    ()
-  (render-main-page nil))
+    (template)
+  (render-main-page nil (find-template template)))
 
 (defun render-template-form (template out)
   (if (null template)
@@ -107,7 +119,14 @@
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
-  (who:escape-string (prin1-to-string (hunchentoot:post-parameters*))))
+  (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") *templates-directory*)))
+    (ensure-directories-exist filepath)
+    (with-open-file (f filepath :direction :output
+                                :if-does-not-exist :create
+                                :if-exists :supersede)
+      (write-string (hunchentoot:post-parameter "source") f))
+    ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
+    (render-main-page nil)))
 
 (defvar *acceptor*)
 
