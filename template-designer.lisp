@@ -42,42 +42,42 @@
         (:meta :name "viewport" :content "width=device-width, initial-scale=1"))
        (:body
         (:script :src "https://code.jquery.com/jquery-3.7.1.js"
-		:integrity"sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
-		:crossorigin "anonymous")
+                 :integrity"sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
+                 :crossorigin "anonymous")
         (:script :src "https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.js" :integrity "sha512-WdJDvPkK4mLIW1kpkWRd7dFtAF6Z0xnfD3XbfrNsK2/f36vMNGt/44iqYQuliJZwCFw32CrxDRh2hpM2TJS1Ew==" :crossorigin "anonymous" :referrerpolicy "no-referrer")
         (:script :src "https://unpkg.com/htmx.org@1.9.12")
-        (:div :class "fixed-grid has-4-cols"
-              (:div :class "grid"
-                    (:div :class "cell"
-                          (:section :class "section"
-                                    (:div :class "container"
-                                          (:h1 (str "Templates"))
-                                          (:select :size 5
-                                            (:option (str "main.html"))
-                                            (:option (str "body.html"))
-                                            (:option (str "test.html")))
-                                          (render-template-form nil stream))))
-                    (:div :class "cell is-col-span-3"
-                          (:section :class "section"
-                                    (:div :class "container"
-                                          (:h1 (str "Template source"))
-                                          (:form
-                                          (:textarea :id "editor"
-                                                     :class "ace"
-                                                     :name "source"
-                                                     :style (cl-css:inline-css '(:width "100%" :height "400px"))
-                                                     :rows 50
-                                                     :width "100%"
-                                                     :height "105px"
-                                                     (str "<html></html>"))))))
-                    (:div :class "cell is-col-span-4"
-                          (:section :class "section"
-                                    (:div :class "container"
-                                          (:h1 (str "Rendered template")))))))
+        (:form :action "template" :method :post
+               (:div :class "fixed-grid has-4-cols"
+                     (:div :class "grid"
+                           (:div :class "cell"
+                                 (:section :class "section"
+                                           (:div :class "container"
+                                                 (:h1 (str "Templates"))
+                                                 (:select :size 5 :style "width: 100%;"
+                                                   (:option (str "main.html"))
+                                                   (:option (str "body.html"))
+                                                   (:option (str "test.html")))
+                                                 (render-template-form nil stream))))
+                           (:div :class "cell is-col-span-3"
+                                 (:section :class "section"
+                                           (:div :class "container"
+                                                 (:h1 (str "Template source"))
+                                                 (:textarea :id "editor"
+                                                            :class "ace"
+                                                            :name "source"
+                                                            :style (cl-css:inline-css '(:width "100%" :height "400px"))
+                                                            :rows 50
+                                                            :width "100%"
+                                                            :height "105px"
+                                                            (str "<html></html>"))))))
+                     (:div :class "cell is-col-span-4"
+                           (:section :class "section"
+                                     (:div :class "container"
+                                           (:h1 (str "Rendered template")))))))
 
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
-        
+
         )))))
 
 (hunchentoot:define-easy-handler (main :uri "/")
@@ -87,24 +87,27 @@
 (defun render-template-form (template out)
   (if (null template)
       (with-html-output (out)
-        (:form :action "/template" :method "POST"
-               (:div :class "field is-small"
-                     (:label :class "is-small" (str "Filename"))
-                     (:div :class "control"
-                           (:input :class "input is-small" :type "text" :placeholder "The template filename")))
-               (:div :class "field is-small"
-                     (:label :class "is-small" (str "Data url"))
-                     (:div :class "control"
-                           (:input :class "input is-small" :type "text" :placeholder "The template data url")))
-               (:div :class "field is-small"
-                     (:label :class "is-small" (str "Arguments"))
-                     (:div :class "control"
-                           (:input :class "input is-small" :type "text" :placeholder "The template arguments")))
+        (:div :class "field is-small"
+              (:label :class "is-small" (str "Filename"))
+              (:div :class "control"
+                    (:input :name "filename" :class "input is-small" :type "text" :placeholder "The template filename")))
+        (:div :class "field is-small"
+              (:label :class "is-small" (str "Data url"))
+              (:div :class "control"
+                    (:input :name "data-url" :class "input is-small" :type "text" :placeholder "The template data url")))
+        (:div :class "field is-small"
+              (:label :class "is-small" (str "Arguments"))
+              (:div :class "control"
+                    (:input :name "arguments" :class "input is-small" :type "text" :placeholder "The template arguments")))
 
-               (:div :class "control"
-                     (:button :class "button is-primary"
-                              :type "submit"
-                              (str "Save")))))))
+        (:div :class "control"
+              (:button :class "button is-primary"
+                       :type "submit"
+                       (str "Save"))))))
+
+(hunchentoot:define-easy-handler (handle-template :uri "/template")
+    ()
+  (who:escape-string (prin1-to-string (hunchentoot:post-parameters*))))
 
 (defvar *acceptor*)
 
