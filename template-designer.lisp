@@ -42,6 +42,11 @@
   (find-if (lambda (template) (string= (template-filename template) filename))
            (load-templates)))
 
+(defun condition-message (condition)
+  "Get the descriptive message of CONDITION."
+  (with-output-to-string (s)
+    (write condition :escape nil :stream s)))
+
 (defparameter +template-designer.js+ (merge-pathnames "template-designer.js" *load-pathname*))
 
 (defun render-main-page (destination &optional template)
@@ -73,7 +78,9 @@
                                                                    :selected (and template (string= (template-filename tmpl) (template-filename template)))
                                                                    (str (template-filename tmpl))
                                                                    ))))
-                                                 (render-template-form template stream))))
+
+                                                 (render-template-form template stream)
+                                                 )))
                            (:div :class "cell is-col-span-3"
                                  (:section :class "section"
                                            (:div :class "container"
@@ -89,8 +96,13 @@
                      (:div :class "cell is-col-span-4"
                            (:section :class "section"
                                      (:div :class "container"
-                                           (:h1 (str "Rendered template")))))))
-
+                                           (:h1 (str "Rendered template"))
+                                           (when template
+                                             (handler-case
+                                                 (apply #'djula:render-template* (merge-pathnames (template-filename template) *templates-directory*)
+                                                        stream (template-arguments template))
+                                               (error (e)
+                                                 (str (write-to-string e :escape nil))))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
@@ -129,7 +141,7 @@
                                 :if-exists :supersede)
       (write-string (hunchentoot:post-parameter "source") f))
     ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-    (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename")))))                                                       
+    (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename")))))
 
 (defvar *acceptor*)
 
