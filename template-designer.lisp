@@ -67,6 +67,7 @@
                                            (:div :class "container"
                                                  (:h1 (str "Templates"))
                                                  (:select :size 5 :style "width: 100%;"
+                                                   :onchange "window.location.href = \"/?template=\" + this.options[this.selectedIndex].value;"
                                                    (dolist (tmpl (load-templates))
                                                      (htm (:option :value (template-filename tmpl)
                                                                    :selected (and template (string= (template-filename tmpl) (template-filename template)))
