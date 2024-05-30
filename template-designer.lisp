@@ -223,6 +223,7 @@
   (setf *project-directory* project-directory)
   (setf *config-directory* config-directory)
   (setf *templates-directory* templates-directory)
+  (djula:add-template-directory (templates-directory))
   (setf *acceptor*
         (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port port)))
   (trivial-open-browser:open-browser (format nil "http://localhost:~a" (hunchentoot:acceptor-port *acceptor*))))
