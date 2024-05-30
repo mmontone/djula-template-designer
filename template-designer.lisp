@@ -133,7 +133,7 @@
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (when template
                        (htm (:div :class "cell is-col-span-4"
-                                  (:h1 (str "Rendered template"))
+                                  (:h1 (str "Rendered template") (:a :class "button is-small" :style "margin-left:10px;" :href (format nil "/render?name=~a" (template-filename template)) :target "_blank" (str "Open in new tab")))
                                   (:iframe :src (format nil "/render?name=~a" (template-filename template))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
