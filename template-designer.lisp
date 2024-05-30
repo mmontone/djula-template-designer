@@ -123,14 +123,13 @@
                                                             :height "105px"
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (:div :class "cell is-col-span-4"
-                           (:div :class "container"
-                                 (:h1 (str "Rendered template"))
+                           (:h1 (str "Rendered template"))
                                  (when template
                                    (handler-case
                                        (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
                                               stream (template-arguments template))
                                      (error (e)
-                                       (str (write-to-string e :escape nil)))))))))
+                                       (str (write-to-string e :escape nil))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
