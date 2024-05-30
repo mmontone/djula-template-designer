@@ -176,30 +176,38 @@
           (:div :class "control"
                 (:button :class "button is-primary is-small"
                          :type "submit"
+                         :name "save"
                          (str "Save")))
           (:div :class "control"
                 (:button :class "button is-danger is-small"
                          :type "submit"
+                         :name "delete"
                          (str "Delete"))))
 
     ))
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
-  ;; Save the template file
-  (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
-    (with-open-file (f filepath :direction :output
-                                :if-does-not-exist :create
-                                :if-exists :supersede)
-      (write-string (hunchentoot:post-parameter "source") f)))
-  ;; Save the template configuration
-  (let ((template-config (merge-pathnames (hunchentoot:post-parameter "filename") (config-directory))))
-    (with-open-file (f template-config :direction :output
-                                       :if-does-not-exist :create
-                                       :if-exists :supersede)
-      (prin1 (hunchentoot:post-parameters*) f)))
-  ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-  (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
+  (cond
+    ((hunchentoot:post-parameter "save")
+     ;; Save the template file
+     (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
+       (with-open-file (f filepath :direction :output
+                                   :if-does-not-exist :create
+                                   :if-exists :supersede)
+         (write-string (hunchentoot:post-parameter "source") f)))
+     ;; Save the template configuration
+     (let ((template-config (merge-pathnames (hunchentoot:post-parameter "filename") (config-directory))))
+       (with-open-file (f template-config :direction :output
+                                          :if-does-not-exist :create
+                                          :if-exists :supersede)
+         (prin1 (hunchentoot:post-parameters*) f)))
+     ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
+     (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
+    ((hunchentoot:post-parameter "delete")
+     ;; FIXME: security problem:
+     (uiop/filesystem:delete-file-if-exists (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory)))
+     (hunchentoot:redirect "/"))))
 
 (hunchentoot:define-easy-handler (render-template :uri "/render")
     (name)
