@@ -116,34 +116,42 @@
 (defun render-template-form (template out)
   (with-html-output (out)
     (:div :class "field is-small"
-          (:label :class "is-small" (str "Filename"))
+          (:label :class "label is-small" (str "Filename"))
           (:div :class "control"
                 (:input :name "filename"
                         :class "input is-small"
                         :type "text"
-                        :placeholder "The template filename"
+                        :placeholder "mytemplate.html"
                         :value (when template (template-filename template)))))
     (:div :class "field is-small"
-          (:label :class "is-small" (str "Data url"))
+          (:label :class "label is-small" (str "Data url"))
           (:div :class "control"
                 (:input :name "data-url"
                         :class "input is-small"
                         :type "text"
-                        :placeholder "The template data url"
+                        :placeholder "http://site/data.json"
                         :value (when template (template-data-url template)))))
     (:div :class "field is-small"
-          (:label :class "is-small" (str "Arguments"))
+          (:label :class "label is-small" (str "Arguments"))
           (:div :class "control"
                 (:textarea :name "arguments"
-                           :placeholder "The template arguments"
-                           :rows 7
+                           :class "textarea"
+                           :placeholder "{\"arg1\": \"foo\", \"arg2\" : \"bar\"}"
+                           :rows 5
                            :style (cl-css:inline-css '(:width "100%"))
                            (when template
                              (str (template-arguments template))))))
-    (:div :class "control"
-          (:button :class "button is-primary"
-                   :type "submit"
-                   (str "Save")))))
+    (:div :class "field is-grouped"
+          (:div :class "control"
+                (:button :class "button is-primary is-small"
+                         :type "submit"
+                         (str "Save")))
+          (:div :class "control"
+                (:button :class "button is-danger is-small"
+                         :type "submit"
+                         (str "Delete"))))
+
+    ))
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
