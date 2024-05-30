@@ -94,15 +94,16 @@
                                                             :height "105px"
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (:div :class "cell is-col-span-4"
-                           (:section :class "section"
-                                     (:div :class "container"
-                                           (:h1 (str "Rendered template"))
-                                           (when template
-                                             (handler-case
-                                                 (apply #'djula:render-template* (merge-pathnames (template-filename template) *templates-directory*)
-                                                        stream (template-arguments template))
-                                               (error (e)
-                                                 (str (write-to-string e :escape nil))))))))))
+                           ;;(:section :class "section"
+                           (:div :class "container"
+                                 (:h1 (str "Rendered template"))
+                                 (when template
+                                   (handler-case
+                                       (apply #'djula:render-template* (merge-pathnames (template-filename template) *templates-directory*)
+                                              stream (template-arguments template))
+                                     (error (e)
+                                       (str (write-to-string e :escape nil)))))))))
+        ;;)
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
@@ -117,16 +118,28 @@
     (:div :class "field is-small"
           (:label :class "is-small" (str "Filename"))
           (:div :class "control"
-                (:input :name "filename" :class "input is-small" :type "text" :placeholder "The template filename" :value (when template (template-filename template)))))
+                (:input :name "filename"
+                        :class "input is-small"
+                        :type "text"
+                        :placeholder "The template filename"
+                        :value (when template (template-filename template)))))
     (:div :class "field is-small"
           (:label :class "is-small" (str "Data url"))
           (:div :class "control"
-                (:input :name "data-url" :class "input is-small" :type "text" :placeholder "The template data url" :value (when template (template-data-url template)))))
+                (:input :name "data-url"
+                        :class "input is-small"
+                        :type "text"
+                        :placeholder "The template data url"
+                        :value (when template (template-data-url template)))))
     (:div :class "field is-small"
           (:label :class "is-small" (str "Arguments"))
           (:div :class "control"
-                (:input :name "arguments" :class "input is-small" :type "text" :placeholder "The template arguments" :value (when template (template-arguments template)))))
-
+                (:textarea :name "arguments"
+                           :placeholder "The template arguments"
+                           :rows 7
+                           :style (cl-css:inline-css '(:width "100%"))
+                           (when template
+                             (str (template-arguments template))))))
     (:div :class "control"
           (:button :class "button is-primary"
                    :type "submit"
