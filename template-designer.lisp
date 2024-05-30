@@ -131,15 +131,10 @@
                                                             :width "100%"
                                                             :height "105px"
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
-                     (:div :class "cell is-col-span-4"
-                           (:h1 (str "Rendered template"))
-                           (when template
-                             (handler-case
-                                 (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
-                                        stream (when (template-arguments template)
-                                                 (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
-                               (error (e)
-                                 (str (write-to-string e :escape nil))))))))
+                     (when template
+                       (htm (:div :class "cell is-col-span-4"
+                                  (:h1 (str "Rendered template"))
+                                  (:iframe :src (format nil "/render?name=~a" (template-filename template))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
@@ -205,6 +200,18 @@
       (prin1 (hunchentoot:post-parameters*) f)))
   ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
   (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
+
+(hunchentoot:define-easy-handler (render-template :uri "/render")
+    (name)
+  (let ((template (or (find-template name)
+                      (error "Template not found: ~s" name))))
+    (handler-case
+        (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
+               nil
+               (when (template-arguments template)
+                 (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
+      (error (e)
+        (write-to-string e :escape nil)))))
 
 (defvar *acceptor*)
 
