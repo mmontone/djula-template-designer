@@ -13,7 +13,36 @@
 
 (in-package :template-designer)
 
-(defparameter *templates-directory* (user-homedir-pathname))
+(defparameter *templates-directory* nil)
+(defparameter *project-name* nil)
+(defparameter *project-directory* nil)
+(defparameter *config-directory* nil)
+
+(defun project-directory ()
+  (ensure-directories-exist
+   (or *project-directory*
+       (merge-pathnames (UIOP/PATHNAME:ENSURE-DIRECTORY-PATHNAME *project-name*)
+                        *default-pathname-defaults*))))
+
+(defun templates-directory ()
+  (ensure-directories-exist
+   (cond
+     ((and *templates-directory* (uiop/pathname:absolute-pathname-p *templates-directory*))
+      *templates-directory*)
+     ((and *templates-directory* (uiop/pathname:relative-pathname-p *templates-directory*))
+      (merge-pathnames *templates-directory* (project-directory)))
+     (t
+      (merge-pathnames #p"templates/" (project-directory))))))
+
+(defun config-directory ()
+  (ensure-directories-exist
+   (cond
+     ((and *config-directory* (uiop/pathname:absolute-pathname-p *config-directory*))
+      *config-directory*)
+     ((and *config-directory* (uiop/pathname:relative-pathname-p *config-directory*))
+      (merge-pathnames *config-directory* (project-directory)))
+     (t
+      (merge-pathnames #p"templates-config/" (project-directory))))))
 
 (defclass template ()
   ((filename :initarg :filename
@@ -33,10 +62,10 @@
   (mapcar (lambda (filepath)
             (make-instance 'template
                            :filename (file-namestring filepath)))
-          (uiop/filesystem:directory-files *templates-directory*)))
+          (uiop/filesystem:directory-files (templates-directory))))
 
 (defun template-source (template)
-  (alexandria:read-file-into-string (merge-pathnames (template-filename template) *templates-directory*)))
+  (alexandria:read-file-into-string (merge-pathnames (template-filename template) (templates-directory))))
 
 (defun find-template (filename)
   (find-if (lambda (template) (string= (template-filename template) filename))
@@ -94,16 +123,14 @@
                                                             :height "105px"
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (:div :class "cell is-col-span-4"
-                           ;;(:section :class "section"
                            (:div :class "container"
                                  (:h1 (str "Rendered template"))
                                  (when template
                                    (handler-case
-                                       (apply #'djula:render-template* (merge-pathnames (template-filename template) *templates-directory*)
+                                       (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
                                               stream (template-arguments template))
                                      (error (e)
                                        (str (write-to-string e :escape nil)))))))))
-        ;;)
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
@@ -155,7 +182,7 @@
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
-  (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") *templates-directory*)))
+  (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
     (ensure-directories-exist filepath)
     (with-open-file (f filepath :direction :output
                                 :if-does-not-exist :create
@@ -166,14 +193,21 @@
 
 (defvar *acceptor*)
 
-(defun start ()
+(defun start (project-name &key (port 0)
+                             project-directory
+                             config-directory
+                             templates-directory)
+  (setf *project-name* project-name)
+  (setf *project-directory* project-directory)
+  (setf *config-directory* config-directory)
+  (setf *templates-directory* templates-directory)
   (setf *acceptor*
-        (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port 0)))
+        (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port port)))
   (trivial-open-browser:open-browser (format nil "http://localhost:~a" (hunchentoot:acceptor-port *acceptor*))))
 
 (defun stop ()
   (hunchentoot:stop *acceptor*)
   (setf *acceptor* nil))
 
-;; (start)
+;; (start "djula-test")
 ;; (stop)
