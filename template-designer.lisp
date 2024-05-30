@@ -6,6 +6,7 @@
 (require :parenscript)
 (require :cl-css)
 (require :drakma)
+(require :cl-json)
 
 (defpackage :template-designer
   (:use :cl :cl-who)
@@ -14,7 +15,7 @@
 (in-package :template-designer)
 
 (defparameter *templates-directory* nil)
-(defparameter *project-name* nil)
+(defvar *project-name*)
 (defparameter *project-directory* nil)
 (defparameter *config-directory* nil)
 
@@ -58,14 +59,22 @@
               :initform nil
               :accessor template-arguments)))
 
-(defun load-templates ()
-  (mapcar (lambda (filepath)
-            (make-instance 'template
-                           :filename (file-namestring filepath)))
-          (uiop/filesystem:directory-files (templates-directory))))
-
 (defun template-source (template)
   (alexandria:read-file-into-string (merge-pathnames (template-filename template) (templates-directory))))
+
+(defun load-template (template)
+  (let ((config-file (merge-pathnames (template-filename template) (config-directory))))
+    (when (uiop:file-exists-p config-file)
+      (let ((config (read-from-string (alexandria:read-file-into-string config-file))))
+        (setf (template-arguments template) (cdr (assoc "arguments" config :test #'string=))
+              (template-data-url template) (cdr (assoc "data-url" config :test #'string=))))))
+  template)
+
+(defun load-templates ()
+  (mapcar (lambda (filepath)
+            (load-template (make-instance 'template
+                                          :filename (file-namestring filepath))))
+          (uiop/filesystem:directory-files (templates-directory))))
 
 (defun find-template (filename)
   (find-if (lambda (template) (string= (template-filename template) filename))
@@ -124,12 +133,13 @@
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (:div :class "cell is-col-span-4"
                            (:h1 (str "Rendered template"))
-                                 (when template
-                                   (handler-case
-                                       (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
-                                              stream (template-arguments template))
-                                     (error (e)
-                                       (str (write-to-string e :escape nil))))))))
+                           (when template
+                             (handler-case
+                                 (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
+                                        stream (when (template-arguments template)
+                                                 (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
+                               (error (e)
+                                 (str (write-to-string e :escape nil))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
 
@@ -181,14 +191,20 @@
 
 (hunchentoot:define-easy-handler (handle-template :uri "/template")
     ()
+  ;; Save the template file
   (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
-    (ensure-directories-exist filepath)
     (with-open-file (f filepath :direction :output
                                 :if-does-not-exist :create
                                 :if-exists :supersede)
-      (write-string (hunchentoot:post-parameter "source") f))
-    ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-    (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename")))))
+      (write-string (hunchentoot:post-parameter "source") f)))
+  ;; Save the template configuration
+  (let ((template-config (merge-pathnames (hunchentoot:post-parameter "filename") (config-directory))))
+    (with-open-file (f template-config :direction :output
+                                       :if-does-not-exist :create
+                                       :if-exists :supersede)
+      (prin1 (hunchentoot:post-parameters*) f)))
+  ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
+  (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
 
 (defvar *acceptor*)
 
