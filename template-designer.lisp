@@ -179,6 +179,11 @@
                          :name "save"
                          (str "Save")))
           (:div :class "control"
+                (:button :class "button is-warning is-small"
+                         :type "submit"
+                         :name "reload"
+                         (str "Reload")))
+          (:div :class "control"
                 (:button :class "button is-danger is-small"
                          :type "submit"
                          :name "delete"
@@ -207,7 +212,9 @@
     ((hunchentoot:post-parameter "delete")
      ;; FIXME: security problem:
      (uiop/filesystem:delete-file-if-exists (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory)))
-     (hunchentoot:redirect "/"))))
+     (hunchentoot:redirect "/"))
+    ((hunchentoot:post-parameter "reload")
+     (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))))
 
 (hunchentoot:define-easy-handler (render-template :uri "/render")
     (name)
