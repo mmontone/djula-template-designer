@@ -91,7 +91,7 @@
   (uiop:with-output (stream destination)
     (write-string "<!doctype html>" stream)
     (with-html-output (stream)
-      (:html 
+      (:html
        (:head
         (:title "Template designer")
         (:link :rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css")
@@ -215,7 +215,6 @@
      ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
      (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
     ((hunchentoot:post-parameter "delete")
-     ;; FIXME: security problem:
      (uiop/filesystem:delete-file-if-exists (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory)))
      (hunchentoot:redirect "/"))
     ((hunchentoot:post-parameter "reload")
