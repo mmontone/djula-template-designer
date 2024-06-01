@@ -251,5 +251,11 @@
   (hunchentoot:stop *acceptor*)
   (setf *acceptor* nil))
 
-;; (start "djula-test")
+;; To start some project:
+;; (start "my-project")
+
+;; Demo using Djula demo files:
+;; (start "djula-demo" :templates-directory (asdf:system-relative-pathname :djula "demo/templates/"))
+
+;; Stop the template designer:
 ;; (stop)
