@@ -10,7 +10,7 @@
 
 (defpackage :template-designer
   (:use :cl :cl-who)
-  (:export #:start))
+  (:export #:start #:stop))
 
 (in-package :template-designer)
 
