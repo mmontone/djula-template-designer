@@ -201,15 +201,13 @@
   (cond
     ((hunchentoot:post-parameter "save")
      ;; Save the template file
-     ;; FIXME: security problem:
-     (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
+     (let ((filepath (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory))))
        (with-open-file (f filepath :direction :output
                                    :if-does-not-exist :create
                                    :if-exists :supersede)
          (write-string (hunchentoot:post-parameter "source") f)))
      ;; Save the template configuration
-     ;; FIXME: security problem:
-     (let ((template-config (merge-pathnames (hunchentoot:post-parameter "filename") (config-directory))))
+     (let ((template-config (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (config-directory))))
        (with-open-file (f template-config :direction :output
                                           :if-does-not-exist :create
                                           :if-exists :supersede)
@@ -218,7 +216,7 @@
      (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
     ((hunchentoot:post-parameter "delete")
      ;; FIXME: security problem:
-     (uiop/filesystem:delete-file-if-exists (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory)))
+     (uiop/filesystem:delete-file-if-exists (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory)))
      (hunchentoot:redirect "/"))
     ((hunchentoot:post-parameter "reload")
      (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))))
