@@ -91,7 +91,7 @@
   (uiop:with-output (stream destination)
     (write-string "<!doctype html>" stream)
     (with-html-output (stream)
-      (:html
+      (:html 
        (:head
         (:title "Template designer")
         (:link :rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css")
@@ -100,7 +100,9 @@
         (:script :src "https://code.jquery.com/jquery-3.7.1.js"
                  :integrity"sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
                  :crossorigin "anonymous")
-        (:script :src "https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.js" :integrity "sha512-WdJDvPkK4mLIW1kpkWRd7dFtAF6Z0xnfD3XbfrNsK2/f36vMNGt/44iqYQuliJZwCFw32CrxDRh2hpM2TJS1Ew==" :crossorigin "anonymous" :referrerpolicy "no-referrer")
+        (:script :src "https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.js"
+                 :integrity "sha512-WdJDvPkK4mLIW1kpkWRd7dFtAF6Z0xnfD3XbfrNsK2/f36vMNGt/44iqYQuliJZwCFw32CrxDRh2hpM2TJS1Ew=="
+                 :crossorigin "anonymous" :referrerpolicy "no-referrer")
         (:script :src "https://unpkg.com/htmx.org@1.9.12")
         (:form :action "template" :method :post
                (:div :class "fixed-grid has-4-cols"
@@ -133,11 +135,14 @@
                                                             (str (or (and template (template-source template)) "<html></html>")))))))
                      (when template
                        (htm (:div :class "cell is-col-span-4"
-                                  (:h1 (str "Rendered template") (:a :class "button is-small" :style "margin-left:10px;" :href (format nil "/render?name=~a" (template-filename template)) :target "_blank" (str "Open in new tab")))
-                                  (:iframe :width "100%" :style "border: 1px solid gray; width 100vw; height:100vh" :src (format nil "/render?name=~a" (template-filename template))))))))
+                                  (:h1 (str "Rendered template")
+                                       (:a :class "button is-small" :style "margin-left:10px;"
+                                           :href (format nil "/render?name=~a" (template-filename template))
+                                           :target "_blank" (str "Open in new tab")))
+                                  (:iframe :width "100%" :style "border: 1px solid gray; width 100vw; height:100vh"
+                                           :src (format nil "/render?name=~a" (template-filename template))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
-
         )))))
 
 (hunchentoot:define-easy-handler (main :uri "/")
@@ -196,12 +201,14 @@
   (cond
     ((hunchentoot:post-parameter "save")
      ;; Save the template file
+     ;; FIXME: security problem:
      (let ((filepath (merge-pathnames (hunchentoot:post-parameter "filename") (templates-directory))))
        (with-open-file (f filepath :direction :output
                                    :if-does-not-exist :create
                                    :if-exists :supersede)
          (write-string (hunchentoot:post-parameter "source") f)))
      ;; Save the template configuration
+     ;; FIXME: security problem:
      (let ((template-config (merge-pathnames (hunchentoot:post-parameter "filename") (config-directory))))
        (with-open-file (f template-config :direction :output
                                           :if-does-not-exist :create
