@@ -1,13 +1,3 @@
-(require :hunchentoot)
-(require :djula)
-(require :cl-who)
-(require :easy-routes)
-(require :trivial-open-browser)
-(require :parenscript)
-(require :cl-css)
-(require :drakma)
-(require :cl-json)
-
 (defpackage :template-designer
   (:use :cl :cl-who)
   (:export #:start #:stop))
@@ -22,7 +12,7 @@
 (defun project-directory ()
   (ensure-directories-exist
    (or *project-directory*
-       (merge-pathnames (UIOP/PATHNAME:ENSURE-DIRECTORY-PATHNAME *project-name*)
+       (merge-pathnames (uiop/pathname:ensure-directory-pathname *project-name*)
                         *default-pathname-defaults*))))
 
 (defun templates-directory ()
@@ -85,7 +75,7 @@
   (with-output-to-string (s)
     (write condition :escape nil :stream s)))
 
-(defparameter +template-designer.js+ (merge-pathnames "template-designer.js" *load-pathname*))
+(defparameter +template-designer.js+ (asdf:system-relative-pathname :template-designer "template-designer.js"))
 
 (defun render-main-page (destination &optional template)
   (uiop:with-output (stream destination)
@@ -112,12 +102,12 @@
                                            (:div :class "container"
                                                  (:h1 (str "Templates"))
                                                  (:select :size 5 :style "width: 100%;"
-                                                   :onchange "window.location.href = \"/?template=\" + this.options[this.selectedIndex].value;"
-                                                   (dolist (tmpl (load-templates))
-                                                     (htm (:option :value (template-filename tmpl)
-                                                                   :selected (and template (string= (template-filename tmpl) (template-filename template)))
-                                                                   (str (template-filename tmpl))
-                                                                   ))))
+                                                          :onchange "window.location.href = \"/?template=\" + this.options[this.selectedIndex].value;"
+                                                          (dolist (tmpl (load-templates))
+                                                            (htm (:option :value (template-filename tmpl)
+                                                                          :selected (and template (string= (template-filename tmpl) (template-filename template)))
+                                                                          (str (template-filename tmpl))
+                                                                          ))))
 
                                                  (render-template-form template stream)
                                                  )))
@@ -237,7 +227,8 @@
 (defun start (project-name &key (port 0)
                              project-directory
                              config-directory
-                             templates-directory)
+                             templates-directory
+                             (open-browser t))
   (setf *project-name* project-name)
   (setf *project-directory* project-directory)
   (setf *config-directory* config-directory)
@@ -245,7 +236,9 @@
   (djula:add-template-directory (templates-directory))
   (setf *acceptor*
         (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port port)))
-  (trivial-open-browser:open-browser (format nil "http://localhost:~a" (hunchentoot:acceptor-port *acceptor*))))
+  (when open-browser
+    (trivial-open-browser:open-browser (format nil "http://localhost:~a" (hunchentoot:acceptor-port *acceptor*))))
+  *acceptor*)
 
 (defun stop ()
   (hunchentoot:stop *acceptor*)
