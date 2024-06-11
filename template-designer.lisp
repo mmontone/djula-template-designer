@@ -101,79 +101,85 @@ Example value: *.html")
 
 (defparameter +template-designer.js+ (asdf:system-relative-pathname :template-designer "template-designer.js"))
 
+(defun with-site-html (stream body)
+  (with-html-output (stream)
+    (write-string "<!doctype html>" stream)
+    (:html
+     (:head
+      (:title "Template designer")
+      (:link :rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css")
+      (:meta :name "viewport" :content "width=device-width, initial-scale=1"))
+     (:body
+      (:script :src "https://code.jquery.com/jquery-3.7.1.js"
+               :integrity"sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
+               :crossorigin "anonymous")
+      (:script :src "https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.js"
+               :integrity "sha512-WdJDvPkK4mLIW1kpkWRd7dFtAF6Z0xnfD3XbfrNsK2/f36vMNGt/44iqYQuliJZwCFw32CrxDRh2hpM2TJS1Ew=="
+               :crossorigin "anonymous" :referrerpolicy "no-referrer")
+      (:script :src "https://unpkg.com/htmx.org@1.9.12")
+      (funcall body)))))
+
 (defun render-main-page (destination &optional template)
   (uiop:with-output (stream destination)
-    (write-string "<!doctype html>" stream)
-    (with-html-output (stream)
-      (:html
-       (:head
-        (:title "Template designer")
-        (:link :rel "stylesheet" :href "https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css")
-        (:meta :name "viewport" :content "width=device-width, initial-scale=1"))
-       (:body
-        (:script :src "https://code.jquery.com/jquery-3.7.1.js"
-                 :integrity"sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
-                 :crossorigin "anonymous")
-        (:script :src "https://cdnjs.cloudflare.com/ajax/libs/ace/1.34.2/ace.js"
-                 :integrity "sha512-WdJDvPkK4mLIW1kpkWRd7dFtAF6Z0xnfD3XbfrNsK2/f36vMNGt/44iqYQuliJZwCFw32CrxDRh2hpM2TJS1Ew=="
-                 :crossorigin "anonymous" :referrerpolicy "no-referrer")
-        (:script :src "https://unpkg.com/htmx.org@1.9.12")
-        (:form :action "template" :method :post
-               (:div :class "fixed-grid has-4-cols"
-                     (:div :class "grid"
-                           (:div :class "cell"
-                                 (:section :class "section"
-                                           (:div :class "container"
-                                                 (:h1 (str "Templates"))
-                                                 (:select :size 5 :style "width: 100%;"
-                                                          :onchange
-                                                          (ps:ps-inline (redirect-to-template this))
-                                                          (dolist (tmpl (load-templates))
-                                                            (htm (:option :value (template-id tmpl)
-                                                                          :selected (and template (string= (template-id tmpl) (template-id template)))
-                                                                          (str (template-filename tmpl))
-                                                                          ))))
+    (with-site-html stream
+      (lambda ()
+        (with-html-output (stream)
+          (:form :action "template" :method :post
+                 (:div :class "fixed-grid has-4-cols"
+                       (:div :class "grid"
+                             (:div :class "cell"
+                                   (:section :class "section"
+                                             (:div :class "container"
+                                                   (:h1 (str "Templates"))
+                                                   (:select :size 5 :style "width: 100%;"
+                                                            :onchange
+                                                            (ps:ps-inline (redirect-to-template this))
+                                                            (dolist (tmpl (load-templates))
+                                                              (htm (:option :value (template-id tmpl)
+                                                                            :selected (and template (string= (template-id tmpl) (template-id template)))
+                                                                            (str (template-filename tmpl))
+                                                                            ))))
 
-                                                 (render-template-form template stream)
-                                                 )))
-                           (:div :class "cell is-col-span-3"
-                                 (:section :class "section"
-                                           (:div :class "container"
-                                                 (:h1 (str "Template source"))
-                                                 (:textarea :id "editor"
-                                                            :class "ace"
-                                                            :name "source"
-                                                            :style (cl-css:inline-css '(:width "100%" :height "400px"))
-                                                            :rows 50
-                                                            :width "100%"
-                                                            :height "105px"
-                                                            (str (or (and template (template-source template)) "<html></html>")))))))
-                     (when template
-                       (htm (:div :class "cell is-col-span-4"
-                                  (:h1 (str "Rendered template")
-                                       (:a :class "button is-small" :style "margin-left:10px;"
-                                           :href (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))
-                                           :target "_blank" (str "Open in new tab")))
-                                  (:iframe :width "100%" :style "border: 1px solid gray; width 100vw; height:100vh"
-                                           :src (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))))))))
-        (:script :type "text/javascript"
-                 (str (alexandria:read-file-into-string +template-designer.js+)))
-        (:script :type "text/javascript"
-                 (str
-                  (ps:ps
-                    (defun redirect-to-template (elem)
-                      (let* ((selected-index (ps:getprop elem 'selected-index))
-                             (selected-option (aref (ps:getprop elem 'options) selected-index)))
-                        (setf
-                         (ps:chain window location href)
-                         (concatenate
-                          'string
-                          "/?"
-                          (ps:chain
-                           (ps:new (-U-R-L-Search-Params (ps:create "id" (ps:getprop selected-option 'value)
-                                                                    "name" (ps:getprop selected-option 'text))))
-                           (to-string)))))))))
-        )))))
+                                                   (render-template-form template stream)
+                                                   )))
+                             (:div :class "cell is-col-span-3"
+                                   (:section :class "section"
+                                             (:div :class "container"
+                                                   (:h1 (str "Template source"))
+                                                   (:textarea :id "editor"
+                                                              :class "ace"
+                                                              :name "source"
+                                                              :style (cl-css:inline-css '(:width "100%" :height "400px"))
+                                                              :rows 50
+                                                              :width "100%"
+                                                              :height "105px"
+                                                              (str (or (and template (template-source template)) "<html></html>")))))))
+                       (when template
+                         (htm (:div :class "cell is-col-span-4"
+                                    (:h1 (str "Rendered template")
+                                         (:a :class "button is-small" :style "margin-left:10px;"
+                                             :href (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))
+                                             :target "_blank" (str "Open in new tab")))
+                                    (:iframe :width "100%" :style "border: 1px solid gray; width 100vw; height:100vh"
+                                             :src (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))))))))
+          (:script :type "text/javascript"
+                   (str (alexandria:read-file-into-string +template-designer.js+)))
+          (:script :type "text/javascript"
+                   (str
+                    (ps:ps
+                      (defun redirect-to-template (elem)
+                        (let* ((selected-index (ps:getprop elem 'selected-index))
+                               (selected-option (aref (ps:getprop elem 'options) selected-index)))
+                          (setf
+                           (ps:chain window location href)
+                           (concatenate
+                            'string
+                            "/?"
+                            (ps:chain
+                             (ps:new (-U-R-L-Search-Params (ps:create "id" (ps:getprop selected-option 'value)
+                                                                      "name" (ps:getprop selected-option 'text))))
+                             (to-string)))))))))
+          )))))
 
 (hunchentoot:define-easy-handler (main :uri "/")
     (id)
@@ -181,7 +187,6 @@ Example value: *.html")
 
 (defun render-template-form (template out)
   (with-html-output (out)
-    ;;(break "~s" template)
     (when template
       (htm
        (:input :type "hidden"
@@ -267,6 +272,53 @@ Example value: *.html")
                  (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
       (error (e)
         (write-to-string e :escape nil)))))
+
+(defun render-settings-form (out)
+  (macrolet ((text-input (name label value &rest args)
+               `(with-html-output (out)
+                  (:div :class "field is-small"
+                        (:label :class "label is-small" (str ,label))
+                        (:div :class "control"
+                              (:input :name ,name
+                                      :class "input is-small"
+                                      :type "text"
+                                      :value ,value
+                                      ,@args))))))
+    (with-html-output (out)
+      (:form
+       (text-input "project-name" "Project name" *project-name* :readonly t)
+       (text-input "project-directory" "Project directory" (princ-to-string (project-directory)) :readonly t)
+       (text-input "templates-directory" "Templates directory" (princ-to-string (templates-directory)) :readonly t)
+       (text-input "config-directory" "Config directory" (princ-to-string (config-directory)) :readonly t)
+       (text-input "template-files-pattern" "Templates file pattern" *template-files-pattern*)
+       (:div :class "field"
+             (:label :class "checkbox"
+                     (:input :name "debug-mode"
+                             :type "checkbox"
+                             :value (if djula:*debug-mode* "true" "false"))
+                     (str "Templates debug mode"))
+             (:p :class "help" (str "Display a panel with information about the rendered template.")))
+       (:div :class "field"
+             (:label :class "checkbox"
+                     (:input :name "strict-mode"
+                             :type "checkbox"
+                             :value (if djula:*strict-mode* "true" "false"))
+                     (str "Templates strict mode"))
+             (:p :class "help" (str "Signal template errors when trying to access an unbound variable.")))
+       (:div :class "field is-grouped"
+             (:div :class "control"
+                   (:button :class "button is-primary is-small"
+                            :type "submit"
+                            :name "update"
+                            (str "Update"))))))))
+
+(hunchentoot:define-easy-handler (render-template :uri "/settings")
+    ()
+  (with-html-output-to-string (html)
+    (with-site-html html
+      (lambda ()
+        (htm (:div :class "container"
+                   (render-settings-form html)))))))
 
 (defvar *acceptor*)
 
