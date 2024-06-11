@@ -1,5 +1,5 @@
 (defpackage :template-designer
-  (:use :cl :cl-who)
+  (:use :cl :cl-who :arrows)
   (:export #:start #:stop))
 
 (in-package :template-designer)
@@ -12,6 +12,7 @@
   "Pattern for listing the template files from the templates directory.
 By default, all files are listed.
 Example value: *.html")
+(defparameter *templates* (make-hash-table :test 'equalp))
 
 (defun project-directory ()
   (ensure-directories-exist
@@ -40,7 +41,10 @@ Example value: *.html")
       (merge-pathnames #p"templates-config/" (project-directory))))))
 
 (defclass template ()
-  ((filename :initarg :filename
+  ((id :initarg :id
+       :accessor template-id
+       :type string)
+   (filename :initarg :filename
              :accessor template-filename
              :type string)
    (rendering-engine :initarg :rendering-engine
@@ -64,15 +68,30 @@ Example value: *.html")
               (template-data-url template) (cdr (assoc "data-url" config :test #'string=))))))
   template)
 
+(defun list-template-files ()
+  (uiop/filesystem:directory-files (templates-directory)
+                                   *template-files-pattern*))
+
+(defun register-template (template)
+  (setf (gethash (template-id template) *templates*) template)
+  template)
+
+(defun make-template-id (filepath)
+  (base64:string-to-base64-string
+   (map 'string #'code-char (sha1:sha1-digest (princ-to-string filepath)))
+   :uri t))
+
 (defun load-templates ()
   (mapcar (lambda (filepath)
-            (load-template (make-instance 'template
-                                          :filename (file-namestring filepath))))
-          (uiop/filesystem:directory-files (templates-directory)
-                                           *template-files-pattern*)))
+            (-> (make-instance 'template
+                              :id (make-template-id filepath)
+                              :filename (file-namestring filepath))
+               (load-template)
+               (register-template)))
+          (list-template-files)))
 
-(defun find-template (filename)
-  (find-if (lambda (template) (string= (template-filename template) filename))
+(defun find-template (id)
+  (find-if (lambda (template) (string= (template-id template) id))
            (load-templates)))
 
 (defun condition-message (condition)
@@ -107,10 +126,11 @@ Example value: *.html")
                                            (:div :class "container"
                                                  (:h1 (str "Templates"))
                                                  (:select :size 5 :style "width: 100%;"
-                                                          :onchange "window.location.href = \"/?template=\" + this.options[this.selectedIndex].value;"
+                                                          :onchange
+                                                          (ps:ps-inline (redirect-to-template this))
                                                           (dolist (tmpl (load-templates))
-                                                            (htm (:option :value (template-filename tmpl)
-                                                                          :selected (and template (string= (template-filename tmpl) (template-filename template)))
+                                                            (htm (:option :value (template-id tmpl)
+                                                                          :selected (and template (string= (template-id tmpl) (template-id template)))
                                                                           (str (template-filename tmpl))
                                                                           ))))
 
@@ -132,20 +152,41 @@ Example value: *.html")
                        (htm (:div :class "cell is-col-span-4"
                                   (:h1 (str "Rendered template")
                                        (:a :class "button is-small" :style "margin-left:10px;"
-                                           :href (format nil "/render?name=~a" (template-filename template))
+                                           :href (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))
                                            :target "_blank" (str "Open in new tab")))
                                   (:iframe :width "100%" :style "border: 1px solid gray; width 100vw; height:100vh"
-                                           :src (format nil "/render?name=~a" (template-filename template))))))))
+                                           :src (format nil "/render?name=~a&id=~a" (template-filename template) (template-id template))))))))
         (:script :type "text/javascript"
                  (str (alexandria:read-file-into-string +template-designer.js+)))
+        (:script :type "text/javascript"
+                 (str
+                  (ps:ps
+                    (defun redirect-to-template (elem)
+                      (let* ((selected-index (ps:getprop elem 'selected-index))
+                             (selected-option (aref (ps:getprop elem 'options) selected-index)))
+                        (setf
+                         (ps:chain window location href)
+                         (concatenate
+                          'string
+                          "/?"
+                          (ps:chain
+                           (ps:new (-U-R-L-Search-Params (ps:create "id" (ps:getprop selected-option 'value)
+                                                                    "name" (ps:getprop selected-option 'text))))
+                           (to-string)))))))))
         )))))
 
 (hunchentoot:define-easy-handler (main :uri "/")
-    (template)
-  (render-main-page nil (find-template template)))
+    (id)
+  (render-main-page nil (find-template id)))
 
 (defun render-template-form (template out)
   (with-html-output (out)
+    ;;(break "~s" template)
+    (when template
+      (htm
+       (:input :type "hidden"
+               :name "id"
+               :value (template-id template))))
     (:div :class "field is-small"
           (:label :class "label is-small" (str "Filename"))
           (:div :class "control"
@@ -208,21 +249,21 @@ Example value: *.html")
                                           :if-exists :supersede)
          (prin1 (hunchentoot:post-parameters*) f)))
      ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-     (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))
+     (hunchentoot:redirect (format nil "/?name=~a&id=~a" (hunchentoot:post-parameter "filename") (hunchentoot:post-parameter "id"))))
     ((hunchentoot:post-parameter "delete")
      (uiop/filesystem:delete-file-if-exists (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory)))
      (hunchentoot:redirect "/"))
     ((hunchentoot:post-parameter "reload")
-     (hunchentoot:redirect (format nil "/?template=~a" (hunchentoot:post-parameter "filename"))))))
+     (hunchentoot:redirect (format nil "/?name=~a&id=~a" (hunchentoot:post-parameter "filename") (hunchentoot:post-parameter "id"))))))
 
 (hunchentoot:define-easy-handler (render-template :uri "/render")
-    (name)
-  (let ((template (or (find-template name)
-                      (error "Template not found: ~s" name))))
+    (id)
+  (let ((template (or (find-template id)
+                      (error "Template not found: ~s" id))))
     (handler-case
         (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
                nil
-               (when (template-arguments template)
+               (when (not (str:blankp (template-arguments template)))
                  (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
       (error (e)
         (write-to-string e :escape nil)))))
