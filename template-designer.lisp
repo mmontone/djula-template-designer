@@ -8,6 +8,10 @@
 (defvar *project-name*)
 (defparameter *project-directory* nil)
 (defparameter *config-directory* nil)
+(defparameter *template-files-pattern* uiop/pathname:*wild-file-for-directory*
+  "Pattern for listing the template files from the templates directory.
+By default, all files are listed.
+Example value: *.html")
 
 (defun project-directory ()
   (ensure-directories-exist
@@ -64,7 +68,8 @@
   (mapcar (lambda (filepath)
             (load-template (make-instance 'template
                                           :filename (file-namestring filepath))))
-          (uiop/filesystem:directory-files (templates-directory))))
+          (uiop/filesystem:directory-files (templates-directory)
+                                           *template-files-pattern*)))
 
 (defun find-template (filename)
   (find-if (lambda (template) (string= (template-filename template) filename))
