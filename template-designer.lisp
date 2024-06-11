@@ -119,11 +119,28 @@ Example value: *.html")
       (:script :src "https://unpkg.com/htmx.org@1.9.12")
       (funcall body)))))
 
+(defun render-navigation-bar (html)
+  (with-html-output (html)
+    (:nav :class "navbar is-dark"
+          (:div :class "navbar-menu"
+                (:div :class "navbar-start"
+                      (:a :class "navbar-item"
+                          :href "/"
+                          (str "Templates"))
+                      (:a :class "navbar-item"
+                          :href "/settings"
+                          (str "Settings"))
+                      (:a :class "navbar-item"
+                          :href "/help"
+                          (str "Help")))))))
+
 (defun render-main-page (destination &optional template)
-  (uiop:with-output (stream destination)
-    (with-site-html stream
+  (uiop:with-output (html destination)
+    (with-site-html html
       (lambda ()
-        (with-html-output (stream)
+        (with-html-output (html)
+          (render-navigation-bar html)
+          ;; templates form
           (:form :action "template" :method :post
                  (:div :class "fixed-grid has-4-cols"
                        (:div :class "grid"
@@ -140,7 +157,7 @@ Example value: *.html")
                                                                             (str (template-filename tmpl))
                                                                             ))))
 
-                                                   (render-template-form template stream)
+                                                   (render-template-form template html)
                                                    )))
                              (:div :class "cell is-col-span-3"
                                    (:section :class "section"
@@ -317,6 +334,7 @@ Example value: *.html")
   (with-html-output-to-string (html)
     (with-site-html html
       (lambda ()
+        (render-navigation-bar html)
         (htm (:div :class "container"
                    (render-settings-form html)))))))
 
