@@ -181,7 +181,7 @@ Example value: *.html")
                              (to-string)))))))))
           )))))
 
-(hunchentoot:define-easy-handler (main :uri "/")
+(hunchentoot:define-easy-handler (main-handler :uri "/")
     (id)
   (render-main-page nil (find-template id)))
 
@@ -237,7 +237,7 @@ Example value: *.html")
 
     ))
 
-(hunchentoot:define-easy-handler (handle-template :uri "/template")
+(hunchentoot:define-easy-handler (template-handler :uri "/template")
     ()
   (cond
     ((hunchentoot:post-parameter "save")
@@ -312,7 +312,7 @@ Example value: *.html")
                             :name "update"
                             (str "Update"))))))))
 
-(hunchentoot:define-easy-handler (render-template :uri "/settings")
+(hunchentoot:define-easy-handler (settings-handler :uri "/settings")
     ()
   (with-html-output-to-string (html)
     (with-site-html html
