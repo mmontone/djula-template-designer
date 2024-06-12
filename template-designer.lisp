@@ -12,6 +12,7 @@
   "Pattern for listing the template files from the templates directory.
 By default, all files are listed.
 Example value: *.html")
+(defparameter *assets-directory* nil)
 (defparameter *templates* (make-hash-table :test 'equalp))
 
 (defun project-directory ()
@@ -19,6 +20,11 @@ Example value: *.html")
    (or *project-directory*
        (merge-pathnames (uiop/pathname:ensure-directory-pathname *project-name*)
                         *default-pathname-defaults*))))
+
+(defun assets-directory ()
+  (ensure-directories-exist
+   (or *assets-directory*
+       (merge-pathnames "assets/" (project-directory)))))
 
 (defun templates-directory ()
   (ensure-directories-exist
@@ -306,6 +312,7 @@ Example value: *.html")
              (text-input "project-name" "Project name" *project-name* :readonly t)
              (text-input "project-directory" "Project directory" (princ-to-string (project-directory)) :readonly t)
              (text-input "templates-directory" "Templates directory" (princ-to-string (templates-directory)) :readonly t)
+             (text-input "assets-directory" "Assets directory" (assets-directory) :readonly t)
              (text-input "config-directory" "Config directory" (princ-to-string (config-directory)) :readonly t)
              (text-input "template-files-pattern" "Templates file pattern" *template-files-pattern*)
              (:div :class "field"
@@ -345,18 +352,28 @@ Example value: *.html")
      (setf *template-files-pattern* (hunchentoot:post-parameter "template-files-pattern"))
      (hunchentoot:redirect "/settings"))))
 
+(defparameter *djula-docs-url* "http://mmontone.github.io/djula/djula/")
+
+(hunchentoot:define-easy-handler (help-handler :uri "/help")
+    ()
+  (hunchentoot:redirect *djula-docs-url*))
+
 (defvar *acceptor*)
 
 (defun start (project-name &key (port 0)
                              project-directory
                              config-directory
                              templates-directory
-                             (open-browser t))
+                             (open-browser t)
+                             assets-directory)
   (setf *project-name* project-name)
   (setf *project-directory* project-directory)
   (setf *config-directory* config-directory)
   (setf *templates-directory* templates-directory)
+  (setf *assets-directory* assets-directory)
   (djula:add-template-directory (templates-directory))
+  (push (hunchentoot:create-folder-dispatcher-and-handler "/assets/" (assets-directory))
+        hunchentoot:*dispatch-table*)
   (setf *acceptor*
         (hunchentoot:start (make-instance 'hunchentoot:easy-acceptor :port port)))
   (when open-browser
