@@ -312,14 +312,14 @@ Example value: *.html")
              (:label :class "checkbox"
                      (:input :name "debug-mode"
                              :type "checkbox"
-                             :value (if djula:*debug-mode* "true" "false"))
+                             :checked djula:*debug-mode*)
                      (str "Templates debug mode"))
              (:p :class "help" (str "Display a panel with information about the rendered template.")))
        (:div :class "field"
              (:label :class "checkbox"
                      (:input :name "strict-mode"
                              :type "checkbox"
-                             :value (if djula:*strict-mode* "true" "false"))
+                             :checked djula:*strict-mode*)
                      (str "Templates strict mode"))
              (:p :class "help" (str "Signal template errors when trying to access an unbound variable.")))
        (:div :class "field is-grouped"
