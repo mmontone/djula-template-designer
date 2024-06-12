@@ -302,41 +302,48 @@ Example value: *.html")
                                       :value ,value
                                       ,@args))))))
     (with-html-output (out)
-      (:form
-       (text-input "project-name" "Project name" *project-name* :readonly t)
-       (text-input "project-directory" "Project directory" (princ-to-string (project-directory)) :readonly t)
-       (text-input "templates-directory" "Templates directory" (princ-to-string (templates-directory)) :readonly t)
-       (text-input "config-directory" "Config directory" (princ-to-string (config-directory)) :readonly t)
-       (text-input "template-files-pattern" "Templates file pattern" *template-files-pattern*)
-       (:div :class "field"
-             (:label :class "checkbox"
-                     (:input :name "debug-mode"
-                             :type "checkbox"
-                             :checked djula:*debug-mode*)
-                     (str "Templates debug mode"))
-             (:p :class "help" (str "Display a panel with information about the rendered template.")))
-       (:div :class "field"
-             (:label :class "checkbox"
-                     (:input :name "strict-mode"
-                             :type "checkbox"
-                             :checked djula:*strict-mode*)
-                     (str "Templates strict mode"))
-             (:p :class "help" (str "Signal template errors when trying to access an unbound variable.")))
-       (:div :class "field is-grouped"
-             (:div :class "control"
-                   (:button :class "button is-primary is-small"
-                            :type "submit"
-                            :name "update"
-                            (str "Update"))))))))
+      (:form :method "post"
+             (text-input "project-name" "Project name" *project-name* :readonly t)
+             (text-input "project-directory" "Project directory" (princ-to-string (project-directory)) :readonly t)
+             (text-input "templates-directory" "Templates directory" (princ-to-string (templates-directory)) :readonly t)
+             (text-input "config-directory" "Config directory" (princ-to-string (config-directory)) :readonly t)
+             (text-input "template-files-pattern" "Templates file pattern" *template-files-pattern*)
+             (:div :class "field"
+                   (:label :class "checkbox"
+                           (:input :name "debug-mode"
+                                   :type "checkbox"
+                                   :checked djula:*debug-mode*)
+                           (str "Templates debug mode"))
+                   (:p :class "help" (str "Display a panel with information about the rendered template.")))
+             (:div :class "field"
+                   (:label :class "checkbox"
+                           (:input :name "strict-mode"
+                                   :type "checkbox"
+                                   :checked djula:*strict-mode*)
+                           (str "Templates strict mode"))
+                   (:p :class "help" (str "Signal template errors when trying to access an unbound variable.")))
+             (:div :class "field is-grouped"
+                   (:div :class "control"
+                         (:button :class "button is-primary is-small"
+                                  :type "submit"
+                                  :name "update"
+                                  (str "Update"))))))))
 
 (hunchentoot:define-easy-handler (settings-handler :uri "/settings")
     ()
-  (with-html-output-to-string (html)
-    (with-site-html html
-      (lambda ()
-        (render-navigation-bar html)
-        (htm (:div :class "container"
-                   (render-settings-form html)))))))
+  (case (hunchentoot:request-method*)
+    (:get
+     (with-html-output-to-string (html)
+       (with-site-html html
+         (lambda ()
+           (render-navigation-bar html)
+           (htm (:div :class "container"
+                      (render-settings-form html)))))))
+    (:post
+     (setf djula:*debug-mode* (hunchentoot:post-parameter "debug-mode"))
+     (setf djula:*strict-mode* (hunchentoot:post-parameter "strict-mode"))
+     (setf *template-files-pattern* (hunchentoot:post-parameter "template-files-pattern"))
+     (hunchentoot:redirect "/settings"))))
 
 (defvar *acceptor*)
 
