@@ -1,11 +1,11 @@
 (defpackage :template-designer
   (:use :cl :cl-who :arrows)
-  (:export #:start #:stop))
+  (:export #:start #:stop #:open-browser))
 
 (in-package :template-designer)
 
-(defparameter *templates-directory* nil)
 (defvar *project-name*)
+(defparameter *templates-directory* nil)
 (defparameter *project-directory* nil)
 (defparameter *config-directory* nil)
 (defparameter *template-files-pattern* uiop/pathname:*wild-file-for-directory*
@@ -398,8 +398,8 @@ Example value: *.html")
                              project-directory
                              config-directory
                              templates-directory
-                             (open-browser t)
-                             assets-directory)
+                             assets-directory
+                             (open-browser t))
   (setf *project-name* project-name)
   (setf *project-directory* project-directory)
   (setf *config-directory* config-directory)
@@ -417,6 +417,10 @@ Example value: *.html")
 (defun stop ()
   (hunchentoot:stop *acceptor*)
   (setf *acceptor* nil))
+
+(defun open-browser ()
+  (trivial-open-browser:open-browser
+   (format nil "http://localhost:~a" (hunchentoot:acceptor-port *acceptor*))))
 
 ;; To start some project:
 ;; (start "my-project")
