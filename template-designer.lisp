@@ -381,8 +381,8 @@ Example value: *.html")
            (htm (:div :class "container"
                       (render-settings-form html)))))))
     (:post
-     (setf djula:*debug-mode* (hunchentoot:post-parameter "debug-mode"))
-     (setf djula:*strict-mode* (hunchentoot:post-parameter "strict-mode"))
+     (setf djula:*debug-mode* (and (hunchentoot:post-parameter "debug-mode") t))
+     (setf djula:*strict-mode* (and (hunchentoot:post-parameter "strict-mode") t))
      (setf *template-files-pattern* (hunchentoot:post-parameter "template-files-pattern"))
      (hunchentoot:redirect "/settings"))))
 
