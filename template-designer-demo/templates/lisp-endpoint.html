@@ -1,0 +1,13 @@
+<html>
+    <p>Access template arguments from using HTTP request that returns Lisp data:</p> 
+    <ul>
+        <li><b>Template system:</b>{{lisp-implementation-type}}</li>
+        <li><b>Template system:</b>{{lisp-implementation-version}}</li>
+        <b>Packages:</b>
+        <ul>
+            {% for package in packages %}
+            <li>{{package}}</li>
+            {% endfor %}
+        </ul>
+    </ul>
+</html>
