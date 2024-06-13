@@ -239,7 +239,10 @@ Example value: *.html")
                            :placeholder "{\"arg1\": \"foo\", \"arg2\" : \"bar\"}"
                            :rows 5
                            :style (cl-css:inline-css '(:width "100%"))
-                           (when template
+                           ;; when arguments specified...
+                           (when (and template
+                                      (or (not (str:blankp (template-arguments template)))
+                                          (not (str:blankp (template-data-url template)))))
                              (if (not (str:blankp (template-arguments template)))
                                  (str (template-arguments template))
                                  (str
@@ -301,7 +304,7 @@ Example value: *.html")
          ((>= status 400)
           (error "Cannot access url: ~a" (template-data-url template)))
          ((str:containsp "lisp" (access:access headers :content-type))
-          (read-from-string content))
+          (read content))
          ((str:containsp "json" (access:access headers :content-type))
           (json:decode-json-from-source content))
          (t
