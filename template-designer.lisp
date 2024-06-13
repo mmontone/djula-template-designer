@@ -296,13 +296,13 @@ Example value: *.html")
   (cond
     ((not (str:blankp (template-data-url template)))
      (multiple-value-bind (content status headers)
-         (drakma:http-request (template-data-url template))
+         (drakma:http-request (template-data-url template) :want-stream t)
        (cond
          ((>= status 400)
           (error "Cannot access url: ~a" (template-data-url template)))
          ((str:containsp "lisp" (access:access headers :content-type))
           (read-from-string content))
-         ((str:containsp "json" (access:access headers :content))
+         ((str:containsp "json" (access:access headers :content-type))
           (json:decode-json-from-source content))
          (t
           (error "Cannot resolve data-url content type")))))
