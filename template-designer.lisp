@@ -291,19 +291,37 @@ Example value: *.html")
                       (error "Template not found: ~s" id))))
     (handler-case
         (let ((template-args
-                (when (not (str:blankp (template-arguments template)))
-                  (handler-case (alexandria:alist-plist (read-from-string (template-arguments template)))
-                    (error (read-error)
-                      (handler-case
-                          (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))
-                        (error (json-error)
-                          (return-from render-template
-                            (who:with-html-output-to-string (html)
-                              (:h3 :style "color:red;" (str "Error reading template arguments"))
-                              (:p (:b (str "Reading as Lisp expression error: "))
-                                  (esc (prin1-to-string read-error)))
-                              (:p (:b (str "Reading as Json error: "))
-                                  (esc (prin1-to-string json-error))))))))))))
+                ;; To obtain the arguments for the template, first option is to read them from HTTP url if it is present
+                (cond
+                  ((not (str:blankp (template-data-url template)))
+                   (handler-case
+                       (multiple-value-bind (content status headers)
+                           (drakma:http-request (template-data-url template))
+                         (cond
+                           ((>= status 400)
+                            (error "Cannot access url: ~a" (template-data-url template)))
+                           ((str:containsp "lisp" (access:access headers :content-type))
+                            (read-from-string content))
+                           ((str:containsp "json" (access:access headers :content))
+                            (json:decode-json-from-source content))
+                           (t
+                            (error "Cannot resolve data-url content type"))))
+                     (error (e)
+                       (return-from render-template
+                         (condition-message e)))))
+                  ((not (str:blankp (template-arguments template)))
+                   (handler-case (alexandria:alist-plist (read-from-string (template-arguments template)))
+                     (error (read-error)
+                       (handler-case
+                           (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))
+                         (error (json-error)
+                           (return-from render-template
+                             (who:with-html-output-to-string (html)
+                               (:h3 :style "color:red;" (str "Error reading template arguments"))
+                               (:p (:b (str "Reading as Lisp expression error: "))
+                                   (str (condition-message read-error)))
+                               (:p (:b (str "Reading as Json error: "))
+                                   (str (condition-message json-error)))))))))))))
           (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
                  nil
                  template-args))
