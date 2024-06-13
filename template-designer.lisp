@@ -285,48 +285,38 @@ Example value: *.html")
     ((hunchentoot:post-parameter "reload")
      (hunchentoot:redirect (format nil "/?name=~a&id=~a" (hunchentoot:post-parameter "filename") (hunchentoot:post-parameter "id"))))))
 
+(defun read-template-arguments (template)
+  (cond
+    ((not (str:blankp (template-data-url template)))
+     (multiple-value-bind (content status headers)
+         (drakma:http-request (template-data-url template))
+       (cond
+         ((>= status 400)
+          (error "Cannot access url: ~a" (template-data-url template)))
+         ((str:containsp "lisp" (access:access headers :content-type))
+          (read-from-string content))
+         ((str:containsp "json" (access:access headers :content))
+          (json:decode-json-from-source content))
+         (t
+          (error "Cannot resolve data-url content type")))))
+    ((not (str:blankp (template-arguments template)))
+     (if (char= (aref (template-arguments template) 0) #\( )
+         ;; we assume it is Lisp data if it starts with a parenthesis character
+         (read-from-string (template-arguments template))
+         ;; otherwise, we assume it is json
+         (json:decode-json-from-string (template-arguments template))))))
+
 (hunchentoot:define-easy-handler (render-template :uri "/render")
     (id)
   (let ((template (or (find-template id)
                       (error "Template not found: ~s" id))))
     (handler-case
-        (let ((template-args
-                ;; To obtain the arguments for the template, first option is to read them from HTTP url if it is present
-                (cond
-                  ((not (str:blankp (template-data-url template)))
-                   (handler-case
-                       (multiple-value-bind (content status headers)
-                           (drakma:http-request (template-data-url template))
-                         (cond
-                           ((>= status 400)
-                            (error "Cannot access url: ~a" (template-data-url template)))
-                           ((str:containsp "lisp" (access:access headers :content-type))
-                            (read-from-string content))
-                           ((str:containsp "json" (access:access headers :content))
-                            (json:decode-json-from-source content))
-                           (t
-                            (error "Cannot resolve data-url content type"))))
-                     (error (e)
-                       (return-from render-template
-                         (condition-message e)))))
-                  ((not (str:blankp (template-arguments template)))
-                   (handler-case (alexandria:alist-plist (read-from-string (template-arguments template)))
-                     (error (read-error)
-                       (handler-case
-                           (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))
-                         (error (json-error)
-                           (return-from render-template
-                             (who:with-html-output-to-string (html)
-                               (:h3 :style "color:red;" (str "Error reading template arguments"))
-                               (:p (:b (str "Reading as Lisp expression error: "))
-                                   (str (condition-message read-error)))
-                               (:p (:b (str "Reading as Json error: "))
-                                   (str (condition-message json-error)))))))))))))
+        (let ((template-args (read-template-arguments template)))
           (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
                  nil
-                 template-args))
+                 (alexandria:alist-plist template-args)))
       (error (e)
-        (write-to-string e :escape nil)))))
+        (cl-who:escape-string (write-to-string e :escape nil))))))
 
 (defun render-settings-form (out)
   (macrolet ((text-input (name label value &rest args)
