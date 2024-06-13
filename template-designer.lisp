@@ -271,15 +271,15 @@ Example value: *.html")
        (with-open-file (f filepath :direction :output
                                    :if-does-not-exist :create
                                    :if-exists :supersede)
-         (write-string (hunchentoot:post-parameter "source") f)))
-     ;; Save the template configuration
-     (let ((template-config (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (config-directory))))
-       (with-open-file (f template-config :direction :output
-                                          :if-does-not-exist :create
-                                          :if-exists :supersede)
-         (prin1 (hunchentoot:post-parameters*) f)))
-     ;;(who:escape-string (prin1-to-string (hunchentoot:post-parameters*)))
-     (hunchentoot:redirect (format nil "/?name=~a&id=~a" (hunchentoot:post-parameter "filename") (hunchentoot:post-parameter "id"))))
+         (write-string (hunchentoot:post-parameter "source") f))
+       ;; Save the template configuration
+       (let ((template-config (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (config-directory))))
+         (with-open-file (f template-config :direction :output
+                                            :if-does-not-exist :create
+                                            :if-exists :supersede)
+           (prin1 (hunchentoot:post-parameters*) f)))
+       (hunchentoot:redirect (format nil "/?name=~a&id=~a" (hunchentoot:post-parameter "filename") (or (hunchentoot:post-parameter "id")
+                                                                                                       (make-template-id filepath))))))
     ((hunchentoot:post-parameter "delete")
      (uiop/filesystem:delete-file-if-exists (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory)))
      (hunchentoot:redirect "/"))
