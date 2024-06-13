@@ -70,8 +70,10 @@ Example value: *.html")
   (let ((config-file (merge-pathnames (template-filename template) (config-directory))))
     (when (uiop:file-exists-p config-file)
       (let ((config (read-from-string (alexandria:read-file-into-string config-file))))
-        (setf (template-arguments template) (cdr (assoc "arguments" config :test #'string=))
-              (template-data-url template) (cdr (assoc "data-url" config :test #'string=))))))
+        (setf (template-data-url template) (cdr (assoc "data-url" config :test #'string=)))
+        ;; if template data url is present, then don't load arguments
+        (when (str:blankp (template-data-url template))
+          (setf (template-arguments template) (cdr (assoc "arguments" config :test #'string=)))))))
   template)
 
 (defun list-template-files ()
