@@ -291,10 +291,23 @@ Example value: *.html")
   (let ((template (or (find-template id)
                       (error "Template not found: ~s" id))))
     (handler-case
-        (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
-               nil
-               (when (not (str:blankp (template-arguments template)))
-                 (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))))
+        (let ((template-args
+                (when (not (str:blankp (template-arguments template)))
+                  (handler-case (alexandria:alist-plist (read-from-string (template-arguments template)))
+                    (error (read-error)
+                      (handler-case
+                          (alexandria:alist-plist (json:decode-json-from-string (template-arguments template)))
+                        (error (json-error)
+                          (return-from render-template
+                            (who:with-html-output-to-string (html)
+                              (:h3 :style "color:red;" (str "Error reading template arguments"))
+                              (:p (:b (str "Reading as Lisp expression error: "))
+                                  (esc (prin1-to-string read-error)))
+                              (:p (:b (str "Reading as Json error: "))
+                                  (esc (prin1-to-string json-error))))))))))))
+          (apply #'djula:render-template* (merge-pathnames (template-filename template) (templates-directory))
+                 nil
+                 template-args))
       (error (e)
         (write-to-string e :escape nil)))))
 
