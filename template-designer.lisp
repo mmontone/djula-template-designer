@@ -240,7 +240,14 @@ Example value: *.html")
                            :rows 5
                            :style (cl-css:inline-css '(:width "100%"))
                            (when template
-                             (str (template-arguments template))))))
+                             (if (not (str:blankp (template-arguments template)))
+                                 (str (template-arguments template))
+                                 (str
+                                  (prin1-to-string
+                                   (handler-case
+                                       (read-template-arguments template)
+                                     (error (e)
+                                       (format nil "Error reading template arguments: ~a" (condition-message e)))))))))))
     (:div :class "field is-grouped"
           (:div :class "control"
                 (:button :class "button is-primary is-small"
