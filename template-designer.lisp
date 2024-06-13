@@ -264,6 +264,8 @@ Example value: *.html")
     ()
   (cond
     ((hunchentoot:post-parameter "save")
+     (when (str:blankp (hunchentoot:post-parameter "filename"))
+       (hunchentoot:redirect "/"))
      ;; Save the template file
      (let ((filepath (merge-pathnames (file-namestring (hunchentoot:post-parameter "filename")) (templates-directory))))
        (with-open-file (f filepath :direction :output
