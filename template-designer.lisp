@@ -1,18 +1,39 @@
 (defpackage :template-designer
   (:use :cl :cl-who :arrows)
-  (:export #:start #:stop #:open-browser))
+  (:export #:start
+           #:stop
+           #:open-browser
+           #:*project-name*
+           #:*project-directory*
+           #:*templates-directory*
+           #:*config-directory*
+           #:*assets-directory*
+           #:*template-files-pattern*
+           #:project-directory
+           #:templates-directory
+           #:config-directory
+           #:assets-directory))
 
 (in-package :template-designer)
 
 (defvar *project-name*)
-(defparameter *templates-directory* nil)
-(defparameter *project-directory* nil)
-(defparameter *config-directory* nil)
+(defparameter *project-directory* nil
+  "The root directory of the project.
+If not specified, then *default-pathname-defaults*/<project-name>/ is used.")
+(defparameter *templates-directory* nil
+  "The directory where the template files are stored.
+If not specified, then <project-directory>/templates/ is used as directory.")
+(defparameter *config-directory* nil
+  "The directory where template configuration is stored.
+Template configuration has arguments and data urls for the templates.
+If not specified, then <project-directory>/templates-config/ is used.")
+(defparameter *assets-directory* nil
+  "The directory where web assets (like images) are stored.
+If not specified, then <project-directory>/assets/ is used.")
 (defparameter *template-files-pattern* uiop/pathname:*wild-file-for-directory*
   "Pattern for listing the template files from the templates directory.
 By default, all files are listed.
 Example value: *.html")
-(defparameter *assets-directory* nil)
 (defparameter *templates* (make-hash-table :test 'equalp))
 
 (defun project-directory ()
@@ -390,7 +411,17 @@ Example value: *.html")
 
 (hunchentoot:define-easy-handler (help-handler :uri "/help")
     ()
-  (hunchentoot:redirect *djula-docs-url*))
+  (with-html-output-to-string (html)
+    (with-site-html html
+      (lambda ()
+        (htm (:style
+              (str "#contents * {all:revert};")))
+        (render-navigation-bar html)
+        (htm (:div :class "container"
+                   :id "contents"
+                   (cl-markdown:markdown
+                    (asdf:system-relative-pathname :template-designer "README.md")
+                    :stream html)))))))
 
 (defvar *acceptor*)
 
