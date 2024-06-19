@@ -43,11 +43,10 @@ Make sure that `templates-directory` points to the directory where the template 
 ## Settings
 
 - **project-directory**: The root directory of the project. If not specified, then `*default-pathname-defaults*/<project-name>/` is used.
-- **templates-directory**: The directory where the template files are stored. If not specified, then <project-directory>/templates/ is used as directory.
-- **config-directory**: The directory where template configuration is stored. Template configuration has arguments and data urls for the templates. If not specified, then <project-directory>/templates-config/ is used.
-- **assets-directory**: The directory where web assets (like images) are stored. If not specified, then <project-directory>/assets/ is used.
-- **template-files-pattern**: Pattern for listing the template files from the templates directory. By default, all files are listed. Example value: *.html
-
+- **templates-directory**: The directory where the template files are stored. If not specified, then `<project-directory>/templates/` is used as directory.
+- **config-directory**: The directory where template configuration is stored. Template configuration has arguments and data urls for the templates. If not specified, then `<project-directory>/templates-config/` is used.
+- **assets-directory**: The directory where web assets (like images) are stored. If not specified, then `<project-directory>/assets/` is used.
+- **template-files-pattern**: Pattern for listing the template files from the templates directory. By default, all files are listed. Example value: `*.html`
 
 ## Q&A
 
