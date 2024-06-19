@@ -327,7 +327,7 @@ Example value: *.html")
          ((>= status 400)
           (error "Cannot access url: ~a" (template-data-url template)))
          ((str:containsp "lisp" (access:access headers :content-type))
-          (read content))
+          (safe-read:safe-read content))
          ((str:containsp "json" (access:access headers :content-type))
           (json:decode-json-from-source content))
          (t
