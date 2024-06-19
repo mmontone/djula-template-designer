@@ -12,6 +12,22 @@ A template designer tool for [Djula](http://mmontone.github.io/djula/djula/).
 
 - **project-directory**: The root directory of the project. If not specified, then `*default-pathname-defaults*/<project-name>/` is used.
 - **templates-directory**: The directory where the template files are stored. If not specified, then <project-directory>/templates/ is used as directory.
+- **config-directory**: The directory where template configuration is stored. Template configuration has arguments and data urls for the templates. If not specified, then <project-directory>/templates-config/ is used.
+- **assets-directory**: The directory where web assets (like images) are stored. If not specified, then <project-directory>/assets/ is used.
+- **template-files-pattern**: Pattern for listing the template files from the templates directory. By default, all files are listed. Example value: *.html
+
+## Working with the template designer
+
+Templates are listed on the left. Their source can be edited on the right.
+The render template appears at the bottom.
+
+Arguments for templates can be specified either providing a `Data url` or filling in the `Arguments` text area. The arguments text area supports both JSON and Lisp data expressions.
+
+To create a template, click on the `Templates` in the menubar, then enter a filename and click on `Save`.
+
+To render a template, click on `Save`.
+
+To clone a template, click on an existing template, then change the filename and save.
 
 ## Demo
 
@@ -43,3 +59,7 @@ Open the template from the filesystem user your editor of choice. The directory 
 With your editor of choice, edit the template and save. Then, from template-designer interface, click on `Reload` to visualize the rendered template.
 
 An alternative is to first click on `Open in new tab` to visualize your template. Then edit the template file using your editor of choice and hit the web browser reload button to visualize the rendered template.
+
+### How to access assets?
+
+Assets are stored in the **assets-directory** (can be inspected from `Settings` page), and accessed using `/assets/<filename>` url.
